@@ -8,27 +8,39 @@ use std::mem;
 use std::io::prelude::*;
 use std::fs::File;
 
-fn create_thumbs() -> Vec<String>{
+fn create_thumbs(img_path: &str) -> Vec<String>{
     let mut thumb_name_vec: Vec<String> = Vec::new();
 
-    if let Ok(entries) = fs::read_dir(".") {
+    if let Ok(entries) = fs::read_dir(img_path) {
         for entry in entries {
             if let Ok(entry) = entry {
 
-                let file_name = &entry.file_name();
-                let opt_ext = Path::new(&file_name)
+                let entry_file_name = &entry.file_name();
+                let file_name_str = entry_file_name.to_str();
+
+                let file_name = file_name_str.unwrap();
+                println!("{}", file_name);
+                let s:Vec<&str> = file_name.split("_").collect();
+                if *s.last().unwrap() == "private.jpg"{
+                    continue;
+                }
+
+                let path = format!("{}/{}", img_path, file_name);
+
+                let extension = Path::new(&path)
                     .extension()
                     .and_then(OsStr::to_str);
-                let filename = Path::new(&file_name)
+
+                let file_stem = Path::new(&path)
                     .file_stem()
                     .and_then(OsStr::to_str)
                     .unwrap();
 
-                if let Some(ext) = opt_ext {
-                    if ext == "jpg" {
-                        let img = image::open(file_name).unwrap();
+                if let Some(e) = extension {
+                    if e == "jpg" {
+                        let img = image::open(&path).unwrap();
                         let thumb = img.thumbnail(100, 100);
-                        let thumb_name = format!("{}_thumb.jpg", filename);
+                        let thumb_name = format!("{}/{}_thumb.jpg", img_path, file_stem);
                         thumb.save(thumb_name.clone()).unwrap();
                         thumb_name_vec.push(thumb_name);
                     }
@@ -66,7 +78,7 @@ fn create_html(mut thumb_name_vec: Vec<String>) -> String {
 }
 
 fn main() -> std::io::Result<()> {
-    let thumbs = create_thumbs();
+    let thumbs = create_thumbs(".");
     let html = create_html(thumbs);
 
     let mut buffer = File::create("foo.txt")?;
@@ -78,6 +90,23 @@ fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_create_thumbnails() {
+        let thumbs = create_thumbs("./tests");
+        let mut entries = fs::read_dir("./tests").unwrap();
+
+
+        let file_one = entries.next().unwrap().unwrap().file_name();
+        let file_two = entries.next().unwrap().unwrap().file_name();
+        let file_three = entries.next().unwrap().unwrap().file_name();
+
+        assert_eq!(file_one, "IMG_20210411_132638_private.jpg");
+        assert_eq!(file_two, "IMG_20210411_132638_thumb.jpg");
+        assert_eq!(file_three, "IMG_20210411_132638.jpg");
+
+        fs::remove_file("./tests/IMG_20210411_132638_thumb.jpg").unwrap();
+    }
 
     #[test]
     fn test_create_html() {
