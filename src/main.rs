@@ -33,13 +33,13 @@ fn is_private(file_name: &str) -> bool {
     *s.last().unwrap() == "private.jpg"
 }
 
-fn is_jpg(file_name: &str) -> bool {
+fn is_photo(file_name: &str) -> bool {
     let extension = Path::new(&file_name)
         .extension()
         .and_then(OsStr::to_str);
 
     if let Some(e) = extension {
-        e == "jpg"
+        e == "jpg" || e == "jpeg"
     } else {
         false
     }
@@ -58,7 +58,7 @@ fn create_thumbs(img_path: &Path) -> Vec<(String, String)>{
                     continue;
                 }
 
-                if is_jpg(&fullpath) {
+                if is_photo(&fullpath) {
                     let thumb_name = create_thumb_name(Path::new(&fullpath));
                     let img = image::open(&fullpath).unwrap();
                     let thumb = img.thumbnail(100, 100);
@@ -130,18 +130,20 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_is_jpg() {
+    fn test_is_photo() {
         let file_name = "photo.jpg";
-        assert!(is_jpg(file_name));
+        assert!(is_photo(file_name));
+
+        let file_name = "photo.jpeg";
+        assert!(is_photo(file_name));
 
         let file_name = "photo.mpg";
-        assert!(!is_jpg(file_name));
+        assert!(!is_photo(file_name));
     }
 
     #[test]
